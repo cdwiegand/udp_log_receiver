@@ -2,7 +2,6 @@ package main
 
 import (
 	"container/list"
-	"fmt"
 	"log"
 	"net"
 )
@@ -28,7 +27,7 @@ func main() {
 			logs.Remove(logs.Back())
 		}
 		logs.PushFront(line)
-		newline := fmt.Sprintf("mem: %d: %s", logs.Len(), line)
-		log.Println(newline)
+		//newline := fmt.Sprintf("mem: %d: %s", logs.Len(), line)
+		//log.Println(newline)
 	}
 }

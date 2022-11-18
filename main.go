@@ -35,6 +35,7 @@ func runUdpServer() {
 			continue
 		}
 		line := string(buf)
+		// FIXME: handle multi-line entries
 		if logs.Len() >= 5000 {
 			logs.Remove(logs.Back())
 		}
@@ -66,11 +67,17 @@ func handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 	values := []string{}
 
 	for temp := logs.Front(); temp != nil; temp = temp.Next() {
-		values = append(values, temp.Value.(string))
+		if temp.Value != nil {
+			tempStr := temp.Value.(string)
+			if len(tempStr) > 0 {
+				values = append(values, tempStr)
+			}
+		}
 	}
-	body := strings.Join(values, "\n")
+	body := strings.Join(values, "\n") + "\n"
 
 	w.Header().Set("X-Hello", "Darkness, my old friend")
+	w.Header().Set("Content-Disposition", "inline")
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(200)
 	w.Write([]byte(body))

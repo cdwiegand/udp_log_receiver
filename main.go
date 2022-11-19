@@ -22,9 +22,13 @@ func getEnvOr(key string, defaultValue string) (retVal string) {
 	}
 	return
 }
-func AtoIv2(value string, defaultValue int) (retVal int) {
+func AtoIv2(value string, defaultValue int, minValue int, maxValue int) (retVal int) {
 	retVal, err := strconv.Atoi(value)
 	if err != nil {
+		retVal = defaultValue
+	} else if minValue > 0 && retVal < minValue {
+		retVal = defaultValue
+	} else if maxValue > 0 && retVal > maxValue {
 		retVal = defaultValue
 	}
 	return
@@ -33,15 +37,16 @@ func AtoIv2(value string, defaultValue int) (retVal int) {
 func main() {
 	httpPort := getEnvOr("HTTP_PORT", "8080")
 	udpPort := getEnvOr("UDP_PORT", "10000")
-	udpBuffer := AtoIv2(getEnvOr("UDP_BUFFER", "65000"), 65000)
+	udpBuffer := AtoIv2(getEnvOr("UDP_BUFFER", "65000"), 65000, 1024, 0)
+	maxLogLines := AtoIv2(getEnvOr("KEEP_LOGS", "5000"), 5000, 1, 0)
 	go runHttpServer(httpPort) // run in background
-	go runUdpServer(udpPort, udpBuffer)
+	go runUdpServer(udpPort, udpBuffer, maxLogLines)
 	for {
 		time.Sleep(time.Minute)
 	}
 }
 
-func runUdpServer(udpPort string, udpBuffer int) {
+func runUdpServer(udpPort string, udpBuffer int, maxLogLines int) {
 	udpServer, err := net.ListenPacket("udp", ":"+udpPort)
 	if err != nil {
 		log.Fatal(err)
@@ -57,7 +62,7 @@ func runUdpServer(udpPort string, udpBuffer int) {
 		}
 		line := string(buf)
 		// FIXME: handle multi-line entries
-		if logs.Len() >= 5000 {
+		if logs.Len() >= maxLogLines {
 			logs.Remove(logs.Back())
 		}
 		logs.PushFront(line)

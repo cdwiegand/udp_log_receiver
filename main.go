@@ -2,9 +2,12 @@ package main
 
 import (
 	"container/list"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -12,16 +15,34 @@ import (
 // thanks to https://www.golinuxcloud.com/golang-udp-server-client/ for the basic UDP listener code!
 var logs = list.New()
 
+func getEnvOr(key string, defaultValue string) (retVal string) {
+	retVal, ok := os.LookupEnv(key)
+	if !ok {
+		retVal = defaultValue
+	}
+	return
+}
+func AtoIv2(value string, defaultValue int) (retVal int) {
+	retVal, err := strconv.Atoi(value)
+	if err != nil {
+		retVal = defaultValue
+	}
+	return
+}
+
 func main() {
-	go runHttpServer() // run in background
-	go runUdpServer()
+	httpPort := getEnvOr("HTTP_PORT", "8080")
+	udpPort := getEnvOr("UDP_PORT", "10000")
+	udpBuffer := AtoIv2(getEnvOr("UDP_BUFFER", "65000"), 65000)
+	go runHttpServer(httpPort) // run in background
+	go runUdpServer(udpPort, udpBuffer)
 	for {
 		time.Sleep(time.Minute)
 	}
 }
 
-func runUdpServer() {
-	udpServer, err := net.ListenPacket("udp", ":10000")
+func runUdpServer(udpPort string, udpBuffer int) {
+	udpServer, err := net.ListenPacket("udp", ":"+udpPort)
 	if err != nil {
 		log.Fatal(err)
 		panic(err)
@@ -29,7 +50,7 @@ func runUdpServer() {
 	defer udpServer.Close()
 
 	for {
-		buf := make([]byte, 65000)
+		buf := make([]byte, udpBuffer)
 		_, _, err := udpServer.ReadFrom(buf)
 		if err != nil {
 			continue
@@ -43,9 +64,9 @@ func runUdpServer() {
 	}
 }
 
-func runHttpServer() {
+func runHttpServer(httpPort string) {
 	srv := &http.Server{
-		Addr:         ":8080",
+		Addr:         ":" + httpPort,
 		Handler:      handleHTTPHandler(handleHTTPRequest),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
@@ -65,20 +86,35 @@ func handleHTTPHandler(f http.HandlerFunc) http.HandlerFunc {
 
 func handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 	values := []string{}
+	searchFor := []string{}
+	if r.URL.Query().Has("q") {
+		searchFor = strings.Split(r.URL.Query().Get("q"), ",")
+	} else {
+		searchFor = nil
+	}
 
 	for temp := logs.Front(); temp != nil; temp = temp.Next() {
 		if temp.Value != nil {
 			tempStr := temp.Value.(string)
 			if len(tempStr) > 0 {
-				values = append(values, tempStr)
+				if searchFor != nil {
+					for _, searchMe := range searchFor {
+						if strings.Contains(tempStr, searchMe) {
+							values = append(values, tempStr)
+						}
+					}
+				} else {
+					values = append(values, tempStr)
+				}
 			}
 		}
 	}
 	body := strings.Join(values, "\n") + "\n"
 
 	w.Header().Set("X-Hello", "Darkness, my old friend")
-	w.Header().Set("Content-Disposition", "inline")
 	w.Header().Set("Content-Type", "text/plain")
+	bodyBytes := []byte(body)
+	w.Header().Set("Content-Length", fmt.Sprint(len(bodyBytes)))
 	w.WriteHeader(200)
-	w.Write([]byte(body))
+	w.Write(bodyBytes)
 }

@@ -15,7 +15,7 @@ Environment variable | Command line arg | Default | Meaning
 Any path is supported - current recommendation is just `/` (root). The `q` query parameter allows you to filter your query to specific comma-delimited strings that at least one of must be present.
 
 # NLog Configuration
-Add the following to your config's `targets`, adjusting layout to format your string however you see fit and adjusting the IP and port of the `address` attribute to point to the correct network location:
+Add the following to your config's `targets`, adjusting `layout` to format your string however you see fit and adjusting the IP and port of the `address` attribute to point to the correct network location:
 ```
 <target xsi:type="Network" name="myUDP" maxMessageSize="65000" address="udp://127.0.0.1:10000" 
   layout="${longdate}|${level}|${message} |${all-event-properties} ${exception:format=tostring}" />

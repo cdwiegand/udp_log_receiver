@@ -1,0 +1,10 @@
+version: '3.3'
+
+services:
+  logger:
+    image: ghcr.io/cdwiegand/udp_log_receiver
+    build:
+      context: .
+    restart: always
+    environment:
+      - USE_CONSOLE=false

@@ -2,6 +2,7 @@ package main
 
 import (
 	"container/list"
+	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -35,12 +36,23 @@ func AtoIv2(value string, defaultValue int, minValue int, maxValue int) (retVal 
 }
 
 func main() {
-	httpPort := getEnvOr("HTTP_PORT", "8080")
-	udpPort := getEnvOr("UDP_PORT", "10000")
-	udpBuffer := AtoIv2(getEnvOr("UDP_BUFFER", "65000"), 65000, 1024, 0)
-	maxLogLines := AtoIv2(getEnvOr("KEEP_LOGS", "5000"), 5000, 1, 0)
-	go runHttpServer(httpPort) // run in background
-	go runUdpServer(udpPort, udpBuffer, maxLogLines)
+	httpPort := flag.String("http", getEnvOr("HTTP_PORT", "8080"), "HTTP port for API calls")
+	udpPort := flag.String("udp", getEnvOr("UDP_PORT", "10000"), "UDP port for receiving logs")
+	udpBuffer := flag.String("buf", getEnvOr("UDP_BUFFER", "65000"), "Maximum buffer size for UDP packets")
+	maxLogLines := flag.String("lines", getEnvOr("KEEP_LOGS", "5000"), "Maximum number of logs to keep in memory")
+	flag.Parse()
+
+	httpPortStr := strconv.Itoa(AtoIv2(*httpPort, 5000, 1, 0))
+	udpPortStr := strconv.Itoa(AtoIv2(*udpPort, 5000, 1, 0))
+	udpBufferInt := AtoIv2(*udpBuffer, 65000, 1024, 1024*1024*1024*4) // 4 GB should be the max, right?
+	maxLogLinesInt := AtoIv2(*maxLogLines, 5000, 1, 0)
+
+	fmt.Println("Using HTTP port", httpPortStr)
+	fmt.Println("Using UDP port", udpPortStr, "with a buffer size of", udpBufferInt)
+	fmt.Println("Storing", maxLogLinesInt, "log lines at maximum")
+
+	go runHttpServer(httpPortStr) // run in background
+	go runUdpServer(udpPortStr, udpBufferInt, maxLogLinesInt)
 	for {
 		time.Sleep(time.Minute)
 	}

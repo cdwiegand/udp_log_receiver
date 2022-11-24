@@ -12,7 +12,7 @@ Environment variable | Command line arg | Default | Meaning
 `USE_CONSOLE` | `-c` | false/off | Whether to print log lines to the console
 
 # HTTP API
-Any path is supported - current recommendation is just `/` (root). The `q` query parameter allows you to filter your query to specific comma-delimited strings that at least one of must be present.
+Any path is supported - current recommendation is just `/logs` (root). The `q` query parameter allows you to filter your query to specific comma-delimited strings that at least one of must be present. The `mode` query parameter allows you to specify plain text response (`text`, the default), or `light` or `dark` HTML web page that will reload from the server every second.
 
 # NLog Configuration
 Add the following to your config's `targets`, adjusting `layout` to format your string however you see fit and adjusting the IP and port of the `address` attribute to point to the correct network location:

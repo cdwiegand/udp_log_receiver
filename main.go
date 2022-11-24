@@ -146,6 +146,10 @@ func handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 	} else {
 		searchFor = nil
 	}
+	mode := "text"
+	if r.URL.Query().Has("mode") {
+		mode = r.URL.Query().Get("mode")
+	}
 
 	for temp := logs.Front(); temp != nil; temp = temp.Next() {
 		if temp.Value != nil {
@@ -166,9 +170,40 @@ func handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 	body := strings.Join(values, "\n") + "\n"
 
 	w.Header().Set("X-Hello", "Darkness, my old friend")
-	w.Header().Set("Content-Type", "text/plain")
-	bodyBytes := []byte(body)
+	var bodyBytes []byte
+    if mode == "dark" {
+		bodyBytes = []byte("<html><head>"+getStyle("#fff","#000")+"</head><body><pre id=\"content\">"+body+"</pre>"+getReloadScript()+"</body></html>")
+		w.Header().Set("Content-Type", "text/html")
+		//w.Header().Set("Refresh","1")
+	} else if mode == "light" || mode == "html" {
+		bodyBytes = []byte("<html><head>"+getStyle("#000","#fff")+"</head><body><pre id=\"content\">"+body+"</pre>"+getReloadScript()+"</body></html>")
+		w.Header().Set("Content-Type", "text/html")
+		//w.Header().Set("Refresh","1")
+	} else { // mode == "text"
+		bodyBytes = []byte(body)
+		w.Header().Set("Content-Type", "text/plain")
+	}
 	w.Header().Set("Content-Length", fmt.Sprint(len(bodyBytes)))
 	w.WriteHeader(200)
 	w.Write(bodyBytes)
+}
+
+func getStyle(fg string, bg string) (ret string) {
+	ret = "<style>body, pre { background-color: "+bg+"; color: "+fg+"; font: monospace; }</style>"
+	return
+}
+func getReloadScript() (ret string) {
+	ret = "<meta http-equiv=\"refresh\" content=\"1\">"
+	ret = "<script defer>\n"
+	ret += "function reloadMyself() {\n"
+	ret += "  fetch('/logs?mode=text').then((resp) => {\n"
+	ret += "    resp.text().then((resp2) => {\n"
+	ret += "      document.getElementById('content').innerText = resp2;\n"
+	ret += "    });\n"
+	ret += "    setTimeout(reloadMyself, 1000);\n"
+	ret += "  });\n"
+	ret += "}\n"
+	ret += "reloadMyself();\n"
+	ret += "</script>\n"
+	return
 }

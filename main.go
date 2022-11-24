@@ -40,22 +40,27 @@ func main() {
 	udpPort := flag.String("udp", getEnvOr("UDP_PORT", "10000"), "UDP port for receiving logs")
 	udpBuffer := flag.String("buffer", getEnvOr("UDP_BUFFER", "65000"), "Maximum buffer size for UDP packets")
 	maxLogLines := flag.String("keep", getEnvOr("KEEP_LOGS", "5000"), "Maximum number of logs to keep in memory")
-	useConsole := flag.Bool("c", truthy(getEnvOr("USE_CONSOLE", "")), "Whether or not to log to console")
+	useConsole := flag.Bool("c", truthy(getEnvOr("USE_CONSOLE", "true")), "Whether or not to log to console")
 	flag.Parse()
 
-	httpPortStr := strconv.Itoa(AtoIv2(*httpPort, 5000, 1, 0))
+	httpPortInt := AtoIv2(*httpPort, 5000, 0, 0)
+	httpPortStr := strconv.Itoa(httpPortInt)
 	udpPortStr := strconv.Itoa(AtoIv2(*udpPort, 5000, 1, 0))
 	udpBufferInt := AtoIv2(*udpBuffer, 65000, 1024, 0) // you should know how big your buffer can be at max..
 	maxLogLinesInt := AtoIv2(*maxLogLines, 5000, 1, 0)
 
-	fmt.Println("Using HTTP port", httpPortStr)
+	if (httpPortInt > 0) {
+		fmt.Println("Using HTTP port", httpPortStr)
+	}
 	fmt.Println("Using UDP port", udpPortStr, "with a buffer size of", udpBufferInt)
 	fmt.Println("Storing", maxLogLinesInt, "log lines at maximum")
 	if *useConsole {
 		fmt.Println("Printing logs to console")
 	}
 
-	go runHttpServer(httpPortStr) // run in background
+	if (httpPortInt > 0) {
+		go runHttpServer(httpPortStr) // run in background
+	}
 	go runUdpServer(udpPortStr, udpBufferInt, maxLogLinesInt, *useConsole)
 	for {
 		time.Sleep(time.Minute)

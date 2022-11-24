@@ -40,6 +40,7 @@ func main() {
 	udpPort := flag.String("udp", getEnvOr("UDP_PORT", "10000"), "UDP port for receiving logs")
 	udpBuffer := flag.String("buf", getEnvOr("UDP_BUFFER", "65000"), "Maximum buffer size for UDP packets")
 	maxLogLines := flag.String("lines", getEnvOr("KEEP_LOGS", "5000"), "Maximum number of logs to keep in memory")
+	useConsole := flag.Bool("c", truthy(getEnvOr("USE_CONSOLE", "")), "Whether or not to log to console")
 	flag.Parse()
 
 	httpPortStr := strconv.Itoa(AtoIv2(*httpPort, 5000, 1, 0))
@@ -50,15 +51,18 @@ func main() {
 	fmt.Println("Using HTTP port", httpPortStr)
 	fmt.Println("Using UDP port", udpPortStr, "with a buffer size of", udpBufferInt)
 	fmt.Println("Storing", maxLogLinesInt, "log lines at maximum")
+	if *useConsole {
+		fmt.Println("Printing logs to console")
+	}
 
 	go runHttpServer(httpPortStr) // run in background
-	go runUdpServer(udpPortStr, udpBufferInt, maxLogLinesInt)
+	go runUdpServer(udpPortStr, udpBufferInt, maxLogLinesInt, *useConsole)
 	for {
 		time.Sleep(time.Minute)
 	}
 }
 
-func runUdpServer(udpPort string, udpBuffer int, maxLogLines int) {
+func runUdpServer(udpPort string, udpBuffer int, maxLogLines int, useConsole bool) {
 	udpServer, err := net.ListenPacket("udp", ":"+udpPort)
 	if err != nil {
 		log.Fatal(err)
@@ -74,11 +78,28 @@ func runUdpServer(udpPort string, udpBuffer int, maxLogLines int) {
 		}
 		line := string(buf)
 		// FIXME: handle multi-line entries
+		if useConsole {
+			fmt.Println(line)
+		}
 		if logs.Len() >= maxLogLines {
 			logs.Remove(logs.Back())
 		}
 		logs.PushFront(line)
 	}
+}
+
+func truthy(value string) (ret bool) {
+	value = strings.TrimSpace(value)
+	value = strings.ToLower(value)
+	if value == "1" ||
+		value == "on" ||
+		value == "yes" ||
+		value == "y" ||
+		value == "true" ||
+		value == "t" {
+		ret = true
+	}
+	return
 }
 
 func runHttpServer(httpPort string) {

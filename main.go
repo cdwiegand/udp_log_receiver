@@ -41,39 +41,47 @@ func main() {
 	udpBuffer := flag.String("buffer", getEnvOr("UDP_BUFFER", "65000"), "Maximum buffer size for UDP packets")
 	maxLogLines := flag.String("keep", getEnvOr("KEEP_LOGS", "5000"), "Maximum number of logs to keep in memory")
 	useConsole := flag.Bool("c", truthy(getEnvOr("USE_CONSOLE", "true")), "Whether or not to log to console")
+	requireFilter := flag.String("require", getEnvOr("REQUIRE_FILTER", ""), "Require incoming logs to contain this value")
 	flag.Parse()
 
+	// convert from pointers to real values, last two are for consistency
 	httpPortInt := AtoIv2(*httpPort, 5000, 0, 0)
 	httpPortStr := strconv.Itoa(httpPortInt)
 	udpPortStr := strconv.Itoa(AtoIv2(*udpPort, 5000, 1, 0))
 	udpBufferInt := AtoIv2(*udpBuffer, 65000, 1024, 0) // you should know how big your buffer can be at max..
 	maxLogLinesInt := AtoIv2(*maxLogLines, 5000, 1, 0)
+	useConsoleBool := *useConsole
+	requireFilterStr := *requireFilter
 
 	if (httpPortInt > 0) {
 		fmt.Println("Using HTTP port", httpPortStr)
 	}
 	fmt.Println("Using UDP port", udpPortStr, "with a buffer size of", udpBufferInt)
 	fmt.Println("Storing", maxLogLinesInt, "log lines at maximum")
-	if *useConsole {
+	if useConsoleBool {
 		fmt.Println("Printing logs to console")
+	}
+	if requireFilterStr != "" {
+		fmt.Println("Requiring incoming packets to contain:",requireFilterStr)
 	}
 
 	if (httpPortInt > 0) {
 		go runHttpServer(httpPortStr) // run in background
 	}
-	go runUdpServer(udpPortStr, udpBufferInt, maxLogLinesInt, *useConsole)
+	go runUdpServer(udpPortStr, udpBufferInt, maxLogLinesInt, useConsoleBool, requireFilterStr)
 	for {
 		time.Sleep(time.Minute)
 	}
 }
 
-func runUdpServer(udpPort string, udpBuffer int, maxLogLines int, useConsole bool) {
+func runUdpServer(udpPort string, udpBuffer int, maxLogLines int, useConsole bool, requireFilter string) {
 	udpServer, err := net.ListenPacket("udp", ":"+udpPort)
 	if err != nil {
 		log.Fatal(err)
 		panic(err)
 	}
 	defer udpServer.Close()
+	usesFilter := requireFilter != ""
 
 	for {
 		buf := make([]byte, udpBuffer)
@@ -82,6 +90,9 @@ func runUdpServer(udpPort string, udpBuffer int, maxLogLines int, useConsole boo
 			continue
 		}
 		line := string(buf)
+		if usesFilter {
+			if (!strings.Contains(line,requireFilter)) { continue; }
+		}
 		// FIXME: handle multi-line entries
 		if useConsole {
 			fmt.Println(line)

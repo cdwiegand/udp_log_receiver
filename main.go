@@ -38,8 +38,8 @@ func AtoIv2(value string, defaultValue int, minValue int, maxValue int) (retVal 
 func main() {
 	httpPort := flag.String("http", getEnvOr("HTTP_PORT", "8080"), "HTTP port for API calls")
 	udpPort := flag.String("udp", getEnvOr("UDP_PORT", "10000"), "UDP port for receiving logs")
-	udpBuffer := flag.String("buf", getEnvOr("UDP_BUFFER", "65000"), "Maximum buffer size for UDP packets")
-	maxLogLines := flag.String("lines", getEnvOr("KEEP_LOGS", "5000"), "Maximum number of logs to keep in memory")
+	udpBuffer := flag.String("buffer", getEnvOr("UDP_BUFFER", "65000"), "Maximum buffer size for UDP packets")
+	maxLogLines := flag.String("keep", getEnvOr("KEEP_LOGS", "5000"), "Maximum number of logs to keep in memory")
 	useConsole := flag.Bool("c", truthy(getEnvOr("USE_CONSOLE", "")), "Whether or not to log to console")
 	flag.Parse()
 

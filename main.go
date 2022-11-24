@@ -45,7 +45,7 @@ func main() {
 
 	httpPortStr := strconv.Itoa(AtoIv2(*httpPort, 5000, 1, 0))
 	udpPortStr := strconv.Itoa(AtoIv2(*udpPort, 5000, 1, 0))
-	udpBufferInt := AtoIv2(*udpBuffer, 65000, 1024, 1024*1024*1024*4) // 4 GB should be the max, right?
+	udpBufferInt := AtoIv2(*udpBuffer, 65000, 1024, 0) // you should know how big your buffer can be at max..
 	maxLogLinesInt := AtoIv2(*maxLogLines, 5000, 1, 0)
 
 	fmt.Println("Using HTTP port", httpPortStr)

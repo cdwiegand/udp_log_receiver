@@ -53,7 +53,7 @@ func main() {
 	useConsoleBool := *useConsole
 	requireFilterStr := *requireFilter
 
-	if (httpPortInt > 0) {
+	if httpPortInt > 0 {
 		fmt.Println("Using HTTP port", httpPortStr)
 	}
 	fmt.Println("Using UDP port", udpPortStr, "with a buffer size of", udpBufferInt)
@@ -62,10 +62,10 @@ func main() {
 		fmt.Println("Printing logs to console")
 	}
 	if requireFilterStr != "" {
-		fmt.Println("Requiring incoming packets to contain:",requireFilterStr)
+		fmt.Println("Requiring incoming packets to contain:", requireFilterStr)
 	}
 
-	if (httpPortInt > 0) {
+	if httpPortInt > 0 {
 		go runHttpServer(httpPortStr) // run in background
 	}
 	go runUdpServer(udpPortStr, udpBufferInt, maxLogLinesInt, useConsoleBool, requireFilterStr)
@@ -91,7 +91,9 @@ func runUdpServer(udpPort string, udpBuffer int, maxLogLines int, useConsole boo
 		}
 		line := string(buf)
 		if usesFilter {
-			if (!strings.Contains(line,requireFilter)) { continue; }
+			if !strings.Contains(line, requireFilter) {
+				continue
+			}
 		}
 		// FIXME: handle multi-line entries
 		if useConsole {
@@ -171,12 +173,12 @@ func handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("X-Hello", "Darkness, my old friend")
 	var bodyBytes []byte
-    if mode == "dark" {
-		bodyBytes = []byte("<html><head>"+getStyle("#fff","#000")+"</head><body><pre id=\"content\">"+body+"</pre>"+getReloadScript()+"</body></html>")
+	if mode == "dark" {
+		bodyBytes = []byte("<html><head>" + getStyle("#fff", "#000") + "</head><body><pre id=\"content\">" + body + "</pre>" + getReloadScript() + "</body></html>")
 		w.Header().Set("Content-Type", "text/html")
 		//w.Header().Set("Refresh","1")
 	} else if mode == "light" || mode == "html" {
-		bodyBytes = []byte("<html><head>"+getStyle("#000","#fff")+"</head><body><pre id=\"content\">"+body+"</pre>"+getReloadScript()+"</body></html>")
+		bodyBytes = []byte("<html><head>" + getStyle("#000", "#fff") + "</head><body><pre id=\"content\">" + body + "</pre>" + getReloadScript() + "</body></html>")
 		w.Header().Set("Content-Type", "text/html")
 		//w.Header().Set("Refresh","1")
 	} else { // mode == "text"
@@ -189,7 +191,7 @@ func handleHTTPRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func getStyle(fg string, bg string) (ret string) {
-	ret = "<style>body, pre { background-color: "+bg+"; color: "+fg+"; font: monospace; }</style>"
+	ret = "<style>body, pre { background-color: " + bg + "; color: " + fg + "; font: monospace; }</style>"
 	return
 }
 func getReloadScript() (ret string) {
